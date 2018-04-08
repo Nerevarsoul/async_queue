@@ -41,7 +41,7 @@ class Producer(BaseRabbit):
 
     async def prepare(self):
         await super().prepare()
-        await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct')
+        await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct', durable=False)
 
     async def publish(self, message):
         routing_key = str(random.randint(0, 60))
@@ -53,13 +53,13 @@ class Consumer(BaseRabbit):
     async def prepare(self, workers, number):
         await super().prepare()
         await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct')
-        result = await self.channel.queue(queue_name='', durable=False, auto_delete=True)
+        result = await self.channel.queue(queue_name='', durable=True, auto_delete=True)
         self.queue = result['queue']
-        severities = [str(i) for i in range(60) if i%workers==number]
+        severities = [str(i) for i in range(60) if i % workers == number]
         for severity in severities:    
             await self.channel.queue_bind(
                 exchange_name=self.exchange_name, queue_name=self.queue, routing_key=severity
             )
 
     async def consume(self, callback):
-        await self.channel.basic_consume(callback, queue_name=self.queue, no_ack=True)
+        await self.channel.basic_consume(callback, queue_name=self.queue)

@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import logging
 from aiohttp import ClientSession
 
 from app.base import Consumer
@@ -9,21 +10,18 @@ from web.config import WebConfig
 
 async def get(channel, body, envelope, properties):
     async with ClientSession() as session:
-        print(channel)
         for _ in range(config.RETRY):
             response = await session.get(WebConfig.SERVER_URL)
             if response.status == 200:
-                print(body)
+                logging.info(body)
+                await channel.basic_client_ack(envelope.delivery_tag)
                 break
             await asyncio.sleep(config.COUNTDOWN)
 
 
 async def listen(consumer):
     while True:
-        try:
-            await consumer.consume(get)
-        except Exception as exc:
-            print('esc ', exc)
+        await consumer.consume(get)
 
 
 async def main(consumer, workers, number):
@@ -35,6 +33,7 @@ async def main(consumer, workers, number):
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     config = BaseConfig()
+    logging.basicConfig(filename="info.log", level=logging.INFO)
     consumers = list()
     parser = argparse.ArgumentParser()
     parser.add_argument('workers', type=int, help='a count of workers')
