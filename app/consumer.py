@@ -1,25 +1,26 @@
 import asyncio
 from aiohttp import ClientSession
 
-from .base import Consumer
+from app.base import Consumer
 from web.config import WebConfig
 
 
-async def get(session, body):
-    for i in range(5):
-        response = await session.get(WebConfig.SERVER_URL)
-        if response.status_code == 200:
-            print(body)
-            break
-        await asyncio.sleep(5)
+async def get(channel, body, envelope, properties):
+    async with ClientSession() as session:
+        for i in range(5):
+            response = await session.get(WebConfig.SERVER_URL)
+            if response.status == 200:
+                print(body)
+                break
+            await asyncio.sleep(5)
 
 
 async def listen(consumer, session):
     while True:
-        body = await consumer.consume()
-        async with asyncio.Semaphore(5):
-            asyncio.ensure_future(get(session, body))
-
+        try:
+            await consumer.consume(get)
+        except Exception as exc:
+            print('esc ', exc)
 
 async def main():
     await consumer.connect()

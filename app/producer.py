@@ -1,6 +1,6 @@
 import asyncio
 
-from .base import Producer
+from app.base import Producer
 
 
 async def main():
@@ -8,6 +8,7 @@ async def main():
     await producer.prepare()
     while True:
         await producer.publish('I love Kate!')
+        print('done')
         await asyncio.sleep(1)
 
 

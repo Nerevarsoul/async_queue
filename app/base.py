@@ -1,8 +1,8 @@
-import asyncio
+import asyncio 
 import aioamqp
 import aiohttp
 
-from .config import BaseConfig
+from app.config import BaseConfig
 
 config = BaseConfig()
 
@@ -30,20 +30,27 @@ class BaseRabbit:
 
     async def prepare(self):
         self.channel = await self.protocol.channel()
-        await self.channel.queue_declare(self.queue)
 
 
 class Producer(BaseRabbit):
 
+    async def prepare(self):
+        await super().prepare()
+        await self.channel.exchange_declare(exchange_name='logs', type_name='direct')    
+
     async def publish(self, message):
-        await self.channel.publish(message, '', self.queue)
+        await self.channel.basic_publish(message, exchange_name='logs', routing_key='info')
 
 
 class Consumer(BaseRabbit):
 
-    @staticmethod
-    async def callback(channel, body, envelope, properties):
-        return body
+    async def prepare(self):
+        await super().prepare()
+        await self.channel.exchange(exchange_name='logs', type_name='direct')
+        result = await self.channel.queue(queue_name='', durable=False, auto_delete=True)
+        self.queue = result['queue']
+        await self.channel.queue_bind(exchange_name='logs', queue_name=self.queue, routing_key='info')
 
-    async def consume(self):
-        await self.channel.basic_consume(self.callback, queue_name=self.queue, no_ack=True)
+    async def consume(self, callback):
+        await self.channel.basic_consume(callback, queue_name=self.queue, no_ack=True)
+

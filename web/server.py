@@ -1,13 +1,13 @@
 from aiohttp import web
 
-from .config import WebConfig
+from web.config import WebConfig
 
 config = WebConfig()
 
 
 async def handler(request):
-    data = await request.json()
-    print(data)
+    print('s!')
+    return web.Response()
 
 
 if __name__ == '__main__':
