@@ -9,13 +9,18 @@ config = BaseConfig()
 
 class BaseRabbit:
 
-    def __init__(self, host=config.RABBIT_HOST, port=config.RABBIT_PORT, queue=config.QUEUE_NAME):
+    def __init__(
+            self, host=config.RABBIT_HOST, port=config.RABBIT_PORT, exchange_name=config.EXCHANGE_NAME,
+            routing_key=config.ROUTING_KEY
+    ):
         self.host = host
         self.port = port
-        self.queue = queue
+        self.exchange_name = exchange_name
+        self.routing_key = routing_key
         self.transport = None
         self.protocol = None
         self.channel = None
+        self.queue = None
 
     async def connect(self):
         try:
@@ -36,21 +41,22 @@ class Producer(BaseRabbit):
 
     async def prepare(self):
         await super().prepare()
-        await self.channel.exchange_declare(exchange_name='logs', type_name='direct')    
+        await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct')
 
     async def publish(self, message):
-        await self.channel.basic_publish(message, exchange_name='logs', routing_key='info')
+        await self.channel.basic_publish(message, exchange_name=self.exchange_name, routing_key=self.routing_key)
 
 
 class Consumer(BaseRabbit):
 
     async def prepare(self):
         await super().prepare()
-        await self.channel.exchange(exchange_name='logs', type_name='direct')
+        await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct')
         result = await self.channel.queue(queue_name='', durable=False, auto_delete=True)
         self.queue = result['queue']
-        await self.channel.queue_bind(exchange_name='logs', queue_name=self.queue, routing_key='info')
+        await self.channel.queue_bind(
+            exchange_name=self.exchange_name, queue_name=self.queue, routing_key=self.routing_key
+        )
 
     async def consume(self, callback):
         await self.channel.basic_consume(callback, queue_name=self.queue, no_ack=True)
-
