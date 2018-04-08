@@ -1,4 +1,6 @@
-import asyncio 
+import asyncio
+import random
+ 
 import aioamqp
 import aiohttp
 
@@ -10,13 +12,11 @@ config = BaseConfig()
 class BaseRabbit:
 
     def __init__(
-            self, host=config.RABBIT['host'], port=config.RABBIT['port'],
-            exchange_name=config.RABBIT['exchange_name'], routing_key=config.RABBIT['routing_key']
+            self, host=config.RABBIT['host'], port=config.RABBIT['port'], exchange_name=config.RABBIT['exchange_name']
     ):
         self.host = host
         self.port = port
         self.exchange_name = exchange_name
-        self.routing_key = routing_key
         self.transport = None
         self.protocol = None
         self.channel = None
@@ -44,19 +44,22 @@ class Producer(BaseRabbit):
         await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct')
 
     async def publish(self, message):
-        await self.channel.basic_publish(message, exchange_name=self.exchange_name, routing_key=self.routing_key)
+        routing_key = str(random.randint(0, 60))
+        await self.channel.basic_publish(message, exchange_name=self.exchange_name, routing_key=routing_key)
 
 
 class Consumer(BaseRabbit):
 
-    async def prepare(self):
+    async def prepare(self, workers, number):
         await super().prepare()
         await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct')
         result = await self.channel.queue(queue_name='', durable=False, auto_delete=True)
         self.queue = result['queue']
-        await self.channel.queue_bind(
-            exchange_name=self.exchange_name, queue_name=self.queue, routing_key=self.routing_key
-        )
+        severities = [str(i) for i in range(60) if i%workers==number]
+        for severity in severities:    
+            await self.channel.queue_bind(
+                exchange_name=self.exchange_name, queue_name=self.queue, routing_key=severity
+            )
 
     async def consume(self, callback):
         await self.channel.basic_consume(callback, queue_name=self.queue, no_ack=True)

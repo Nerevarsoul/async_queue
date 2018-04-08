@@ -9,6 +9,7 @@ from web.config import WebConfig
 
 async def get(channel, body, envelope, properties):
     async with ClientSession() as session:
+        print(channel)
         for _ in range(config.RETRY):
             response = await session.get(WebConfig.SERVER_URL)
             if response.status == 200:
@@ -25,9 +26,9 @@ async def listen(consumer):
             print('esc ', exc)
 
 
-async def main(consumer):
+async def main(consumer, workers, number):
     await consumer.connect()
-    await consumer.prepare()
+    await consumer.prepare(workers, number)
     asyncio.ensure_future(listen(consumer))
 
 
@@ -38,10 +39,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('workers', type=int, help='a count of workers')
     args = parser.parse_args()
-    for _ in range(args.workers):
+    for number in range(args.workers):
         worker = Consumer()
         consumers.append(worker)
-        asyncio.ensure_future(main(worker))
+        asyncio.ensure_future(main(worker, args.workers, number))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
