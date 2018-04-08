@@ -10,8 +10,8 @@ config = BaseConfig()
 class BaseRabbit:
 
     def __init__(
-            self, host=config.RABBIT_HOST, port=config.RABBIT_PORT, exchange_name=config.EXCHANGE_NAME,
-            routing_key=config.ROUTING_KEY
+            self, host=config.RABBIT['host'], port=config.RABBIT['port'],
+            exchange_name=config.RABBIT['exchange_name'], routing_key=config.RABBIT['routing_key']
     ):
         self.host = host
         self.port = port

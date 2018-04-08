@@ -17,7 +17,7 @@ async def get(channel, body, envelope, properties):
             await asyncio.sleep(config.COUNTDOWN)
 
 
-async def listen():
+async def listen(consumer):
     while True:
         try:
             await consumer.consume(get)
@@ -25,26 +25,28 @@ async def listen():
             print('esc ', exc)
 
 
-async def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('workers', metavar='W', type=int, help='a count of workers')
-    args = parser.parse_args()
-    workers = args.workers
+async def main(consumer):
     await consumer.connect()
     await consumer.prepare()
-    for _ in range(workers):
-        asyncio.ensure_future(listen())
+    asyncio.ensure_future(listen(consumer))
 
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    consumer = Consumer()
     config = BaseConfig()
-    asyncio.ensure_future(main())
+    consumers = list()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('workers', type=int, help='a count of workers')
+    args = parser.parse_args()
+    for _ in range(args.workers):
+        worker = Consumer()
+        consumers.append(worker)
+        asyncio.ensure_future(main(worker))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        loop.run_until_complete(consumer.close())
+        for worker in consumers:
+            loop.run_until_complete(worker.close())
     loop.close()
