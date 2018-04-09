@@ -51,7 +51,7 @@ class Consumer(BaseRabbit):
 
     async def prepare(self, workers, number, *args, **kwargs):
         await super().prepare()
-        await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct')
+        await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct', durable=True)
         result = await self.channel.queue(queue_name='', durable=True, auto_delete=True)
         self.queue = result['queue']
         self.severities = [str(i) for i in range(config.KEY_RANGE) if i % workers == number]
