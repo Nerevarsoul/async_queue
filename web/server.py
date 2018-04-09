@@ -6,7 +6,6 @@ config = WebConfig()
 
 
 async def handler(request):
-    print('s!')
     return web.Response()
 
 

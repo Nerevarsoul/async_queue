@@ -1,8 +1,6 @@
-import asyncio
 import random
  
 import aioamqp
-import aiohttp
 
 from app.config import BaseConfig
 
@@ -21,6 +19,7 @@ class BaseRabbit:
         self.protocol = None
         self.channel = None
         self.queue = None
+        self.severities = []
 
     async def connect(self):
         try:
@@ -33,30 +32,30 @@ class BaseRabbit:
         await self.protocol.close()
         self.transport.close()
 
-    async def prepare(self):
+    async def prepare(self, *args, **kwargs):
         self.channel = await self.protocol.channel()
 
 
 class Producer(BaseRabbit):
 
-    async def prepare(self):
+    async def prepare(self, *args, **kwargs):
         await super().prepare()
-        await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct', durable=False)
+        await self.channel.exchange_declare(exchange_name=self.exchange_name, type_name='direct', durable=True)
 
     async def publish(self, message):
-        routing_key = str(random.randint(0, 60))
+        routing_key = str(random.randint(0, config.KEY_RANGE))
         await self.channel.basic_publish(message, exchange_name=self.exchange_name, routing_key=routing_key)
 
 
 class Consumer(BaseRabbit):
 
-    async def prepare(self, workers, number):
+    async def prepare(self, workers, number, *args, **kwargs):
         await super().prepare()
         await self.channel.exchange(exchange_name=self.exchange_name, type_name='direct')
         result = await self.channel.queue(queue_name='', durable=True, auto_delete=True)
         self.queue = result['queue']
-        severities = [str(i) for i in range(60) if i % workers == number]
-        for severity in severities:    
+        self.severities = [str(i) for i in range(config.KEY_RANGE) if i % workers == number]
+        for severity in self.severities:
             await self.channel.queue_bind(
                 exchange_name=self.exchange_name, queue_name=self.queue, routing_key=severity
             )

@@ -3,8 +3,7 @@ import asyncio
 import logging
 from aiohttp import ClientSession
 
-from app.base import Consumer
-from app.config import BaseConfig
+from app.base import Consumer, config
 from web.config import WebConfig
 
 
@@ -32,8 +31,7 @@ async def main(consumer, workers, number):
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    config = BaseConfig()
-    logging.basicConfig(filename="info.log", level=logging.INFO)
+    logging.basicConfig(filename=config.LOG['filename'], level=config.LOG['level'])
     consumers = list()
     parser = argparse.ArgumentParser()
     parser.add_argument('workers', type=int, help='a count of workers')

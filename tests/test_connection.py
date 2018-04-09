@@ -1,0 +1,17 @@
+import asyncio
+
+from app.base import Consumer
+
+
+async def test_connection():
+    consumer = Consumer()
+    consumer.connect()
+    assert consumer.protocol is not None
+    assert consumer.transport is not None
+    consumer.close()
+
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(test_connection())
+    loop.close()
